@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>刀男升級計算器</title>
+    <style>
+        /* 保留原有樣式 */
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .calculator {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .input-group {
+            margin-bottom: 15px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .input-field {
+            margin-bottom: 10px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #e8f5e9;
+            border-radius: 4px;
+            display: none;
+        }
+        .bonus-active {
+            background-color: #fff3cd;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            border: 1px solid #ffeeba;
+            text-align: center;
+            color: #856404;
+        }
+        .result-value {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+        h1 {
+            text-align: center;
+            color: #2e7d32;
+            margin-bottom: 25px;
+        }
+        .source-info {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+        .source-info a {
+            color: #4CAF50;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .source-info a:hover {
+            color: #45a049;
+            text-decoration: underline;
+        }
+
+        /* 新增管理員模式相關樣式 */
+        .admin-panel {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .admin-button {
+            background-color: #6c757d;
+            margin-top: 10px;
+        }
+        .admin-button:hover {
+            background-color: #5a6268;
+        }
+        .exp-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .exp-table th, .exp-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .exp-table th {
+            background-color: #f8f9fa;
+        }
+        .exp-table input {
+            width: 100%;
+            padding: 4px;
+            border: 1px solid #ddd;
+            border-radius: 2px;
+        }
+        .save-success {
+            color: #28a745;
+            margin-top: 10px;
+            display: none;
+        }
+        .admin-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .admin-controls button {
+            flex: 1;
+        }
+        .export-button {
+            background-color: #17a2b8;
+        }
+        .export-button:hover {
+            background-color: #138496;
+        }
+        .import-button {
+            background-color: #6c757d;
+        }
+        .import-button:hover {
+            background-color: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <h1>刀男升級計算器</h1>
+        
+        <div class="input-group">
+            <!-- 保留原有的輸入欄位 -->
+            <div class="input-field">
+                <label for="currentLevel">目前等級：</label>
+                <input type="number" id="currentLevel" min="1" value="1">
+            </div>
+            
+            <div class="input-field">
+                <label for="targetLevel">目標等級：</label>
+                <input type="number" id="targetLevel" min="1" value="2">
+            </div>
+            
+            <div class="input-field">
+                <label for="monsterExp">每場獲得經驗值：</label>
+                <input type="number" id="monsterExp" min="1" value="100">
+            </div>
+
+            <div class="input-field">
+                <label for="expMultiplier">經驗值倍率：</label>
+                <input type="number" id="expMultiplier" min="1" step="0.1" value="1.0">
+                <div class="bonus-active" id="bonusNote" style="display: none;">
+                    🌟 經驗值加乘活動進行中！
+                </div>
+            </div>
+        </div>
+
+        <button onclick="calculate()">計算升級所需</button>
+        
+        <div id="result" class="result"></div>
+
+        <!-- 管理員面板 -->
+        <div id="adminPanel" class="admin-panel">
+            <h3>經驗值表編輯</h3>
+            <div class="admin-controls">
+                <button onclick="exportExpTable()" class="export-button">匯出經驗值表</button>
+                <button onclick="importExpTable()" class="import-button">匯入經驗值表</button>
+            </div>
+            <div id="expTableContainer">
+                <table class="exp-table">
+                    <thead>
+                        <tr>
+                            <th>等級</th>
+                            <th>所需經驗值</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expTableBody"></tbody>
+                </table>
+            </div>
+            <button onclick="saveExpTable()" class="admin-button">儲存變更</button>
+            <div id="saveSuccess" class="save-success">✓ 儲存成功</div>
+        </div>
+
+        <div class="source-info">
+            資料來源：<a href="http://wikiwiki.jp/toulove/" target="_blank">刀剣乱舞ONLINE（とうらぶ） Wiki*</a>
+            <br>
+            <button onclick="toggleAdminPanel()" class="admin-button">管理員模式</button>
+        </div>
+    </div>
+
+    <script>
+        // 在最上方定義 expTable 對象
+const expTable = {
+ 1: 0,
+ 2: 100,
+ 3: 300,
+ 4: 700,
+ 5: 1300,
+ 6: 2100,
+ 7: 3100,
+ 8: 4300,
+ 9: 5700,
+ 10: 7300,
+ 11: 9100,
+ 12: 11100,
+ 13: 13300,
+ 14: 15700,
+ 15: 18300,
+ 16: 21100,
+ 17: 24100,
+ 18: 27300,
+ 19: 30700,
+ 20: 34300,
+ 21: 38200,
+ 22: 42400,
+ 23: 46900,
+ 24: 51700,
+ 25: 56800,
+ 26: 62200,
+ 27: 67900,
+ 28: 73900,
+ 29: 80200,
+ 30: 86800,
+ 31: 93700,
+ 32: 100900,
+ 33: 108400,
+ 34: 116200,
+ 35: 124300,
+ 36: 132700,
+ 37: 141400,
+ 38: 150400,
+ 39: 159700,
+ 40: 169300,
+ 41: 179300,
+ 42: 189700,
+ 43: 200500,
+ 44: 211700,
+ 45: 223300,
+ 46: 235300,
+ 47: 247700,
+ 48: 260500,
+ 49: 273700,
+ 50: 287300,
+ 51: 301300,
+ 52: 315700,
+ 53: 330500,
+ 54: 345700,
+ 55: 361300,
+ 56: 377300,
+ 57: 393700,
+ 58: 410500,
+ 59: 427700,
+ 60: 445300,
+ 61: 463400,
+ 62: 482000,
+ 63: 501100,
+ 64: 520700,
+ 65: 540800,
+ 66: 561400,
+ 67: 582500,
+ 68: 604100,
+ 69: 626200,
+ 70: 648800,
+ 71: 672000,
+ 72: 695800,
+ 73: 720200,
+ 74: 745200,
+ 75: 770800,
+ 76: 797000,
+ 77: 823800,
+ 78: 851200,
+ 79: 879200,
+ 80: 907800,
+ 81: 937200,
+ 82: 967400,
+ 83: 998400,
+ 84: 1030200,
+ 85: 1062800,
+ 86: 1096200,
+ 87: 1130400,
+ 88: 1165400,
+ 89: 1201200,
+ 90: 1237800,
+ 91: 1277800,
+ 92: 1327800,
+ 93: 1387800,
+ 94: 1457800,
+ 95: 1537800,
+ 96: 1627800,
+ 97: 1727800,
+ 98: 1827800,
+ 99: 1927800
+};
+        // 初始化經驗值表
+function generateExpTable() {
+    // 直接使用定義好的 expTable 對象,不需要從本地存儲中讀取
+}
+
+        // 顯示/隱藏管理員面板
+        function toggleAdminPanel() {
+            const adminPanel = document.getElementById('adminPanel');
+            if (adminPanel.style.display === 'none' || !adminPanel.style.display) {
+                adminPanel.style.display = 'block';
+                refreshExpTable();
+            } else {
+                adminPanel.style.display = 'none';
+            }
+        }
+
+        // 刷新經驗值表顯示
+function refreshExpTable() {
+    const tbody = document.getElementById('expTableBody');
+    tbody.innerHTML = '';
+
+    for (let level = 1; level <= 99; level++) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${level}</td>
+            <td><input type="number" value="${expTable[level]}" 
+                onchange="updateExpTable(${level}, this.value)" /></td>
+        `;
+        tbody.appendChild(tr);
+    }
+}
+
+
+        // 更新經驗值表中的值
+function updateExpTable(level, exp) {
+    expTable[level] = parseInt(exp);
+}
+
+        // 儲存經驗值表變更
+function saveExpTable() {
+    const saveSuccess = document.getElementById('saveSuccess');
+    saveSuccess.style.display = 'block';
+    setTimeout(() => {
+        saveSuccess.style.display = 'none';
+    }, 2000);
+    // 不需要保存到本地存儲
+}
+
+        // 匯出經驗值表
+        function exportExpTable() {
+            const dataStr = JSON.stringify(expTable, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'exp-table.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // 匯入經驗值表
+        function importExpTable() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        expTable = importedData;
+                        refreshExpTable();
+                        alert('匯入成功！');
+                    } catch (error) {
+                        alert('匯入失敗：無效的檔案格式');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        // 原有的計算功能
+        function calculate() {
+            const currentLevel = parseInt(document.getElementById('currentLevel').value);
+            const targetLevel = parseInt(document.getElementById('targetLevel').value);
+            const monsterExp = parseInt(document.getElementById('monsterExp').value);
+            const expMultiplier = parseFloat(document.getElementById('expMultiplier').value);
+            
+            if (currentLevel >= targetLevel) {
+                alert('目標等級必須大於目前等級！');
+                return;
+            }
+
+            let totalExp = 0;
+            for (let level = currentLevel; level < targetLevel; level++) {
+                if (expTable[level]) {
+                    totalExp += expTable[level];
+                }
+            }
+
+            const effectiveMonsterExp = monsterExp * expMultiplier;
+            const monstersNeeded = Math.ceil(totalExp / effectiveMonsterExp);
+            
+            const result = document.getElementById('result');
+            result.innerHTML = `
+                <div class="result-content">
+                    <p>從 <span class="result-value">${currentLevel}</span> 級升到 
+                       <span class="result-value">${targetLevel}</span> 級：</p>
+                    <p>需要總經驗值：<span class="result-value">${totalExp.toLocaleString()}</span> 點</p>
+                    ${expMultiplier !== 1 ? 
+                        `<p>目前經驗值倍率：<span class="result-value">${expMultiplier}</span> 倍</p>
+                         <p>每場獲得經驗值：<span class="result-value">${effectiveMonsterExp.toLocaleString()}</span> 點</p>` 
+                        : ''}
+                    <p>需要再打：<span class="result-value">${monstersNeeded.toLocaleString()}</span> 場</p>
+                </div>
+            `;
+            result.style.display = 'block';
+        }
+
+        // 監聽經驗值倍率的變化
+        document.getElementById('expMultiplier').addEventListener('input', function(e) {
+            const multiplier = parseFloat(e.target.value);
+            const bonusNote = document.getElementById('bonusNote');
+            bonusNote.style.display = multiplier > 1 ? 'block' : 'none';
+        });
+
+        // 初始化
+        generateExpTable();
+    </script>
+</body>
+</html>
