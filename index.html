@@ -432,7 +432,7 @@ function saveExpTable() {
             }
 
             const effectiveMonsterExp = monsterExp * expMultiplier;
-            const monstersNeeded = Math.ceil(totalExp / effectiveMonsterExp);
+            const monstersNeeded = Math.ceil((currentLevel - targetLevel) / effectiveMonsterExp);
             
             const result = document.getElementById('result');
             result.innerHTML = `
